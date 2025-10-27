@@ -273,7 +273,7 @@ function RouteComponent() {
               setSelectedLetter(null);
             }}
             className={`h-10 w-12 rounded-lg ${
-              filter === "id" ? "bg-red-200" : "bg-sky-200"
+              filter === "id" ? "bg-neutral-300" : "bg-sky-200"
             }`}
           >
             ID
@@ -284,7 +284,7 @@ function RouteComponent() {
               setSelectedLetter(null);
             }}
             className={`h-10 w-12 rounded-lg ${
-              filter === "kr" ? "bg-red-200" : "bg-sky-200"
+              filter === "kr" ? "bg-neutral-300" : "bg-sky-200"
             }`}
           >
             KR
