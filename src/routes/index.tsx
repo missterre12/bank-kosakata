@@ -74,6 +74,7 @@ function RouteComponent() {
     undefined
   );
   const [filter, setFilter] = useState("id");
+  const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
 
   const filteredWordBank = searchQuery
     ? wordBank.filter(
@@ -85,7 +86,13 @@ function RouteComponent() {
 
   const groupedWords = filteredWordBank.reduce(
     (acc, word) => {
-      const firstLetter = word.textId[0]?.toLowerCase();
+      let firstLetter: string;
+
+      if (filter === "id") {
+        firstLetter = word.textId[0]?.toLowerCase();
+      } else {
+        firstLetter = word.textKr[0] || "";
+      }
 
       if (acc[firstLetter]) {
         acc[firstLetter].push(word);
@@ -93,7 +100,12 @@ function RouteComponent() {
 
       return acc;
     },
-    Object.fromEntries(alphabets.map((letter) => [letter, [] as WordBank[]]))
+    Object.fromEntries(
+      (filter === "id" ? alphabets : hangeul).map((letter) => [
+        letter,
+        [] as WordBank[],
+      ])
+    )
   );
 
   const handleSubmit = (
@@ -140,6 +152,9 @@ function RouteComponent() {
     setShowForm(false);
   };
 
+  const lettersToDisplay = filter === "id" ? alphabets : hangeul;
+  const filteredLetters = selectedLetter ? [selectedLetter] : lettersToDisplay;
+
   return (
     <div className="flex flex-col flex-1 p-15 gap-5 max-w-1/2 mx-auto">
       <div className="flex flex-col gap-10">
@@ -155,76 +170,90 @@ function RouteComponent() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
           <button
-            onClick={() => {
-              setShowForm(true);
-            }}
+            onClick={() => setShowForm(true)}
             className="items-center justify-center flex text-white w-12 h-12 rounded-lg bg-sky-600"
           >
             <PlusIcon />
           </button>
         </div>
       </div>
-      <div className="flex flex-row">
-        <div className="flex flex-col gap-2.5">
-          <label htmlFor="letter">Pilih Huruf</label>
+
+      <div className="flex flex-row gap-5">
+        <div className="flex flex-col gap-2.5 flex-1">
+          <div className="flex items-center justify-between">
+            <label className="font-medium" htmlFor="letter">
+              Pilih Huruf
+            </label>
+            {selectedLetter && (
+              <button
+                onClick={() => setSelectedLetter(null)}
+                className="text-sm text-sky-600 underline"
+              >
+                Tampilkan Semua
+              </button>
+            )}
+          </div>
           <div className="flex flex-wrap gap-2.5">
             {filter === "id" &&
-              alphabets.map((letter) => {
-                return (
-                  <button
-                    key={letter}
-                    className="rounded-full bg-sky-300 h-12 w-12 text-lg"
-                  >
-                    {letter.toUpperCase()}
-                  </button>
-                );
-              })}
+              alphabets.map((letter) => (
+                <button
+                  key={letter}
+                  onClick={() => setSelectedLetter(letter)}
+                  className={`rounded-full h-12 w-12 text-lg ${
+                    selectedLetter === letter
+                      ? "bg-sky-600 text-white"
+                      : "bg-sky-300"
+                  }`}
+                >
+                  {letter.toUpperCase()}
+                </button>
+              ))}
             {filter === "kr" &&
-              hangeul.map((letter) => {
-                return (
-                  <button
-                    key={letter}
-                    className="rounded-full bg-sky-300 h-12 w-12 text-lg"
-                  >
-                    {letter.toUpperCase()}
-                  </button>
-                );
-              })}
+              hangeul.map((letter) => (
+                <button
+                  key={letter}
+                  onClick={() => setSelectedLetter(letter)}
+                  className={`rounded-full h-12 w-12 text-lg ${
+                    selectedLetter === letter
+                      ? "bg-sky-600 text-white"
+                      : "bg-sky-300"
+                  }`}
+                >
+                  {letter}
+                </button>
+              ))}
           </div>
         </div>
-        <div className="flex flex-row gap-5">
-          <div className="flex flex-col gap-2">
-            <label className="font-medium">Filter</label>
-            <button
-              onClick={() => {
-                setFilter("id");
-              }}
-              className={
-                filter === "id"
-                  ? "h-10 w-12 bg-red-200 rounded-lg"
-                  : "h-10 w-12 bg-sky-200 rounded-lg"
-              }
-            >
-              ID
-            </button>
-            <button
-              onClick={() => {
-                setFilter("kr");
-              }}
-              className={
-                filter === "kr"
-                  ? "h-10 w-12 bg-red-200 rounded-lg"
-                  : "h-10 w-12 bg-sky-200 rounded-lg"
-              }
-            >
-              KR
-            </button>
-          </div>
+
+        <div className="flex flex-col gap-2">
+          <label className="font-medium">Filter</label>
+          <button
+            onClick={() => {
+              setFilter("id");
+              setSelectedLetter(null);
+            }}
+            className={`h-10 w-12 rounded-lg ${
+              filter === "id" ? "bg-red-200" : "bg-sky-200"
+            }`}
+          >
+            ID
+          </button>
+          <button
+            onClick={() => {
+              setFilter("kr");
+              setSelectedLetter(null);
+            }}
+            className={`h-10 w-12 rounded-lg ${
+              filter === "kr" ? "bg-red-200" : "bg-sky-200"
+            }`}
+          >
+            KR
+          </button>
         </div>
       </div>
 
       <div className="flex flex-col gap-2">
-        {alphabets.map((letter) => {
+        {filteredLetters.map((letter) => {
           const wordsInGroup = groupedWords[letter];
 
           if (wordsInGroup.length === 0) {
@@ -236,29 +265,29 @@ function RouteComponent() {
               key={letter}
               className="bg-white p-4 flex flex-col gap-2 rounded-lg"
             >
-              <h2 className="text-xl font-bold">{letter.toUpperCase()}</h2>
+              <h2 className="text-xl font-bold">
+                {filter === "id" ? letter.toUpperCase() : letter}
+              </h2>
               <div>
-                {wordsInGroup.map((word) => {
-                  return (
-                    <button
-                      onClick={() => {
-                        setSelectedWordBank(word.id);
-                        setShowForm(true);
-                      }}
-                      key={word.id}
-                      className="flex flex-row items-center justify-between    flex-1 w-full"
-                    >
-                      <span>{word.textId}</span>
-                      <span>{word.textKr}</span>
-                    </button>
-                  );
-                })}
+                {wordsInGroup.map((word) => (
+                  <button
+                    onClick={() => {
+                      setSelectedWordBank(word.id);
+                      setShowForm(true);
+                    }}
+                    key={word.id}
+                    className="flex flex-row items-center justify-between flex-1 w-full"
+                  >
+                    <span>{word.textId}</span>
+                    <span>{word.textKr}</span>
+                  </button>
+                ))}
               </div>
             </div>
           );
         })}
       </div>
-      {/* <pre>{JSON.stringify(wordBank, null, 2)}</pre> */}
+
       {showForm && (
         <FormModal
           onClose={() => {
@@ -291,23 +320,22 @@ function FormModal(props: FormModalProps) {
 
   useEffect(() => {
     if (props.id) {
-      const selectedWordBank = props.wordBank.find((word) => {
-        return word.id === props.id;
-      });
+      const selectedWordBank = props.wordBank.find(
+        (word) => word.id === props.id
+      );
       if (selectedWordBank) {
         if (textIdRef.current) {
-          textIdRef.current!.value = selectedWordBank.textId;
+          textIdRef.current.value = selectedWordBank.textId;
         }
         if (textKrRef.current) {
-          textKrRef.current!.value = selectedWordBank.textKr;
+          textKrRef.current.value = selectedWordBank.textKr;
         }
-
         if (notesRef.current) {
-          notesRef.current!.value = selectedWordBank.notes;
+          notesRef.current.value = selectedWordBank.notes;
         }
       }
     }
-  }, [props.id]);
+  }, [props.id, props.wordBank]);
 
   return (
     <div className="bg-black/20 flex items-center justify-center h-screen w-screen absolute top-0 left-0">
