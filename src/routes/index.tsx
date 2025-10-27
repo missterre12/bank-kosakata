@@ -1,5 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PlusIcon, XIcon } from "lucide-react";
+import {
+  CircleAlertIcon,
+  PlusIcon,
+  RefreshCcw,
+  SquareCheck,
+  Trash2Icon,
+  XIcon,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 export const Route = createFileRoute("/")({
@@ -66,6 +73,38 @@ const hangeul = [
   "ㅉ",
 ];
 
+function getInitialConsonant(char: string): string {
+  const code = char.charCodeAt(0);
+
+  if (code >= 0xac00 && code <= 0xd7a3) {
+    const initialConsonants = [
+      "ㄱ",
+      "ㄲ",
+      "ㄴ",
+      "ㄷ",
+      "ㄸ",
+      "ㄹ",
+      "ㅁ",
+      "ㅂ",
+      "ㅃ",
+      "ㅅ",
+      "ㅆ",
+      "ㅇ",
+      "ㅈ",
+      "ㅉ",
+      "ㅊ",
+      "ㅋ",
+      "ㅌ",
+      "ㅍ",
+      "ㅎ",
+    ];
+    const index = Math.floor((code - 0xac00) / 588);
+    return initialConsonants[index];
+  }
+
+  return char;
+}
+
 function RouteComponent() {
   const [showForm, setShowForm] = useState(false);
   const [wordBank, setWordBank] = useState<WordBank[]>([]);
@@ -91,7 +130,8 @@ function RouteComponent() {
       if (filter === "id") {
         firstLetter = word.textId[0]?.toLowerCase();
       } else {
-        firstLetter = word.textKr[0] || "";
+        const firstChar = word.textKr[0];
+        firstLetter = firstChar ? getInitialConsonant(firstChar) : "";
       }
 
       if (acc[firstLetter]) {
@@ -260,6 +300,14 @@ function RouteComponent() {
             return null;
           }
 
+          const sortedWords = [...wordsInGroup].sort((a, b) => {
+            if (filter === "id") {
+              return a.textId.localeCompare(b.textId);
+            } else {
+              return a.textKr.localeCompare(b.textKr, "ko");
+            }
+          });
+
           return (
             <div
               key={letter}
@@ -269,7 +317,7 @@ function RouteComponent() {
                 {filter === "id" ? letter.toUpperCase() : letter}
               </h2>
               <div>
-                {wordsInGroup.map((word) => (
+                {sortedWords.map((word) => (
                   <button
                     onClick={() => {
                       setSelectedWordBank(word.id);
@@ -278,8 +326,18 @@ function RouteComponent() {
                     key={word.id}
                     className="flex flex-row items-center justify-between flex-1 w-full"
                   >
-                    <span>{word.textId}</span>
-                    <span>{word.textKr}</span>
+                    {filter === "id" && (
+                      <>
+                        <span>{word.textId}</span>
+                        <span>{word.textKr}</span>
+                      </>
+                    )}
+                    {filter === "kr" && (
+                      <>
+                        <span>{word.textKr}</span>
+                        <span>{word.textId}</span>
+                      </>
+                    )}
                   </button>
                 ))}
               </div>
@@ -300,6 +358,18 @@ function RouteComponent() {
           }}
           id={selectedWordBank}
           wordBank={wordBank}
+          onDelete={(id, form) => {
+            if (id) {
+              setWordBank((wordBank) => {
+                return wordBank.filter((word) => {
+                  return word.id !== id;
+                });
+              });
+              setShowForm(false);
+              setSelectedWordBank(undefined);
+            }
+            form?.reset();
+          }}
         />
       )}
     </div>
@@ -311,12 +381,14 @@ type FormModalProps = {
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   id?: string;
   wordBank: WordBank[];
+  onDelete?: (id: string, form?: HTMLFormElement) => void;
 };
 
 function FormModal(props: FormModalProps) {
   const textIdRef = useRef<HTMLInputElement>(null);
   const textKrRef = useRef<HTMLInputElement>(null);
   const notesRef = useRef<HTMLTextAreaElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     if (props.id) {
@@ -339,7 +411,12 @@ function FormModal(props: FormModalProps) {
 
   return (
     <div className="bg-black/20 flex items-center justify-center h-screen w-screen absolute top-0 left-0">
-      <form action="" className="contents" onSubmit={props.onSubmit}>
+      <form
+        action=""
+        className="contents"
+        onSubmit={props.onSubmit}
+        ref={formRef}
+      >
         <div className="bg-white relative p-5 rounded-lg flex flex-col gap-5 min-w-[25vw]">
           <button
             onClick={props.onClose}
@@ -383,12 +460,34 @@ function FormModal(props: FormModalProps) {
               placeholder="Masukkan catatan..."
             ></textarea>
           </div>
-          <button
-            className="bg-sky-600 rounded-lg w-full h-12 text-white"
-            type="submit"
-          >
-            Simpan
-          </button>
+          <div className="flex flex-row gap-2.5">
+            <button
+            data-id={props.id? true : false}
+              className="data-[id=false]:bg-neutral-400 data-[id=true]:bg-red-500 rounded-lg w-full h-12 text-white flex flex-row items-center justify-center gap-1"
+              type="button"
+              onClick={() => {
+                if (formRef.current) {
+                  props.onDelete?.(props?.id ?? "", formRef.current);
+                }
+              }}
+            >
+              {props.id ? (
+                <>
+                  <Trash2Icon /> Hapus
+                </>
+              ) : (
+                <>
+                  <RefreshCcw /> Reset
+                </>
+              )}
+            </button>
+            <button
+              className="bg-sky-600 rounded-lg w-full h-12 text-white flex flex-row items-center justify-center gap-1"
+              type="submit"
+            >
+              <SquareCheck /> Simpan
+            </button>
+          </div>
         </div>
       </form>
     </div>
