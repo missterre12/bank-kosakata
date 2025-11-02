@@ -1,6 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import {
-  CircleAlertIcon,
   PlusIcon,
   RefreshCcw,
   SquareCheck,
@@ -8,8 +7,9 @@ import {
   XIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { pb } from "../../pocketbase";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/_protected/")({
   component: RouteComponent,
 });
 
@@ -106,6 +106,15 @@ function getInitialConsonant(char: string): string {
 }
 
 function RouteComponent() {
+  pb.health.check().then(console.log);
+  const router = useRouter();
+  const handleLogout = () => {
+    pb.authStore.clear();
+    router.navigate({
+      to: "/login",
+      replace: true,
+    });
+  };
   const [showForm, setShowForm] = useState(false);
   const [wordBank, setWordBank] = useState<WordBank[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -196,182 +205,193 @@ function RouteComponent() {
   const filteredLetters = selectedLetter ? [selectedLetter] : lettersToDisplay;
 
   return (
-    <div className="flex flex-col flex-1 p-15 gap-5 max-w-1/2 mx-auto">
-      <div className="flex flex-col gap-10">
-        <p className="text-center text-2xl font-bold">
-          Bank Kosakata Indonesia - Korea
-        </p>
-        <div className="flex-1 flex flex-row gap-2.5">
-          <input
-            className="bg-white w-full border border-neutral-500/70 rounded-lg ps-2.5"
-            type="text"
-            placeholder="Cari kata..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <button
-            onClick={() => setShowForm(true)}
-            className="items-center justify-center flex text-white w-12 h-12 rounded-lg bg-sky-600"
-          >
-            <PlusIcon />
-          </button>
-        </div>
+    <div className="flex flex-col">
+      <div className="ms-auto flex p-5">
+        <button
+          type="button"
+          className="bg-sky-600 rounded-lg w-20 h-12 text-white hover:cursor-pointer"
+          onClick={handleLogout}
+        >
+          Logout
+        </button>
       </div>
-
-      <div className="flex flex-row gap-5">
-        <div className="flex flex-col gap-2.5 flex-1">
-          <div className="flex items-center justify-between">
-            <label className="font-medium" htmlFor="letter">
-              Pilih Huruf
-            </label>
-            {selectedLetter && (
-              <button
-                onClick={() => setSelectedLetter(null)}
-                className="text-sm text-sky-600 underline"
-              >
-                Tampilkan Semua
-              </button>
-            )}
+      <div className="flex flex-col flex-1 p-15 gap-5 max-w-1/2 mx-auto">
+        <div className="flex flex-col gap-10">
+          <p className="text-center text-2xl font-bold">
+            Bank Kosakata Indonesia - Korea
+          </p>
+          <div className="flex-1 flex flex-row gap-2.5">
+            <input
+              className="bg-white w-full border border-neutral-500/70 rounded-lg ps-2.5"
+              type="text"
+              placeholder="Cari kata..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <button
+              onClick={() => setShowForm(true)}
+              className="items-center justify-center flex text-white w-12 h-12 rounded-lg bg-sky-600"
+            >
+              <PlusIcon />
+            </button>
           </div>
-          <div className="flex flex-wrap gap-2.5">
-            {filter === "id" &&
-              alphabets.map((letter) => (
+        </div>
+
+        <div className="flex flex-row gap-5">
+          <div className="flex flex-col gap-2.5 flex-1">
+            <div className="flex items-center justify-between">
+              <label className="font-medium" htmlFor="letter">
+                Pilih Huruf
+              </label>
+              {selectedLetter && (
                 <button
-                  key={letter}
-                  onClick={() => setSelectedLetter(letter)}
-                  className={`rounded-full h-12 w-12 text-lg ${
-                    selectedLetter === letter
-                      ? "bg-sky-600 text-white"
-                      : "bg-sky-300"
-                  }`}
+                  onClick={() => setSelectedLetter(null)}
+                  className="text-sm text-sky-600 underline"
                 >
-                  {letter.toUpperCase()}
+                  Tampilkan Semua
                 </button>
-              ))}
-            {filter === "kr" &&
-              hangeul.map((letter) => (
-                <button
-                  key={letter}
-                  onClick={() => setSelectedLetter(letter)}
-                  className={`rounded-full h-12 w-12 text-lg ${
-                    selectedLetter === letter
-                      ? "bg-sky-600 text-white"
-                      : "bg-sky-300"
-                  }`}
-                >
-                  {letter}
-                </button>
-              ))}
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2.5">
+              {filter === "id" &&
+                alphabets.map((letter) => (
+                  <button
+                    key={letter}
+                    onClick={() => setSelectedLetter(letter)}
+                    className={`rounded-full h-12 w-12 text-lg ${
+                      selectedLetter === letter
+                        ? "bg-sky-600 text-white"
+                        : "bg-sky-300"
+                    }`}
+                  >
+                    {letter.toUpperCase()}
+                  </button>
+                ))}
+              {filter === "kr" &&
+                hangeul.map((letter) => (
+                  <button
+                    key={letter}
+                    onClick={() => setSelectedLetter(letter)}
+                    className={`rounded-full h-12 w-12 text-lg ${
+                      selectedLetter === letter
+                        ? "bg-sky-600 text-white"
+                        : "bg-sky-300"
+                    }`}
+                  >
+                    {letter}
+                  </button>
+                ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="font-medium">Filter</label>
+            <button
+              onClick={() => {
+                setFilter("id");
+                setSelectedLetter(null);
+              }}
+              className={`h-10 w-12 rounded-lg ${
+                filter === "id" ? "bg-neutral-300" : "bg-sky-200"
+              }`}
+            >
+              ID
+            </button>
+            <button
+              onClick={() => {
+                setFilter("kr");
+                setSelectedLetter(null);
+              }}
+              className={`h-10 w-12 rounded-lg ${
+                filter === "kr" ? "bg-neutral-300" : "bg-sky-200"
+              }`}
+            >
+              KR
+            </button>
           </div>
         </div>
 
         <div className="flex flex-col gap-2">
-          <label className="font-medium">Filter</label>
-          <button
-            onClick={() => {
-              setFilter("id");
-              setSelectedLetter(null);
-            }}
-            className={`h-10 w-12 rounded-lg ${
-              filter === "id" ? "bg-neutral-300" : "bg-sky-200"
-            }`}
-          >
-            ID
-          </button>
-          <button
-            onClick={() => {
-              setFilter("kr");
-              setSelectedLetter(null);
-            }}
-            className={`h-10 w-12 rounded-lg ${
-              filter === "kr" ? "bg-neutral-300" : "bg-sky-200"
-            }`}
-          >
-            KR
-          </button>
-        </div>
-      </div>
+          {filteredLetters.map((letter) => {
+            const wordsInGroup = groupedWords[letter];
 
-      <div className="flex flex-col gap-2">
-        {filteredLetters.map((letter) => {
-          const wordsInGroup = groupedWords[letter];
-
-          if (wordsInGroup.length === 0) {
-            return null;
-          }
-
-          const sortedWords = [...wordsInGroup].sort((a, b) => {
-            if (filter === "id") {
-              return a.textId.localeCompare(b.textId);
-            } else {
-              return a.textKr.localeCompare(b.textKr, "ko");
+            if (wordsInGroup.length === 0) {
+              return null;
             }
-          });
 
-          return (
-            <div
-              key={letter}
-              className="bg-white p-4 flex flex-col gap-2 rounded-lg"
-            >
-              <h2 className="text-xl font-bold">
-                {filter === "id" ? letter.toUpperCase() : letter}
-              </h2>
-              <div>
-                {sortedWords.map((word) => (
-                  <button
-                    onClick={() => {
-                      setSelectedWordBank(word.id);
-                      setShowForm(true);
-                    }}
-                    key={word.id}
-                    className="flex flex-row items-center justify-between flex-1 w-full"
-                  >
-                    {filter === "id" && (
-                      <>
-                        <span>{word.textId}</span>
-                        <span>{word.textKr}</span>
-                      </>
-                    )}
-                    {filter === "kr" && (
-                      <>
-                        <span>{word.textKr}</span>
-                        <span>{word.textId}</span>
-                      </>
-                    )}
-                  </button>
-                ))}
+            const sortedWords = [...wordsInGroup].sort((a, b) => {
+              if (filter === "id") {
+                return a.textId.localeCompare(b.textId);
+              } else {
+                return a.textKr.localeCompare(b.textKr, "ko");
+              }
+            });
+
+            return (
+              <div
+                key={letter}
+                className="bg-white p-4 flex flex-col gap-2 rounded-lg"
+              >
+                <h2 className="text-xl font-bold">
+                  {filter === "id" ? letter.toUpperCase() : letter}
+                </h2>
+                <div>
+                  {sortedWords.map((word) => (
+                    <button
+                      onClick={() => {
+                        setSelectedWordBank(word.id);
+                        setShowForm(true);
+                      }}
+                      key={word.id}
+                      className="flex flex-row items-center justify-between flex-1 w-full"
+                    >
+                      {filter === "id" && (
+                        <>
+                          <span>{word.textId}</span>
+                          <span>{word.textKr}</span>
+                        </>
+                      )}
+                      {filter === "kr" && (
+                        <>
+                          <span>{word.textKr}</span>
+                          <span>{word.textId}</span>
+                        </>
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
 
-      {showForm && (
-        <FormModal
-          onClose={() => {
-            setShowForm(false);
-            setSelectedWordBank(undefined);
-          }}
-          onSubmit={(e) => {
-            handleSubmit(e, selectedWordBank);
-            setSelectedWordBank(undefined);
-          }}
-          id={selectedWordBank}
-          wordBank={wordBank}
-          onDelete={(id, form) => {
-            if (id) {
-              setWordBank((wordBank) => {
-                return wordBank.filter((word) => {
-                  return word.id !== id;
-                });
-              });
+        {showForm && (
+          <FormModal
+            onClose={() => {
               setShowForm(false);
               setSelectedWordBank(undefined);
-            }
-            form?.reset();
-          }}
-        />
-      )}
+            }}
+            onSubmit={(e) => {
+              handleSubmit(e, selectedWordBank);
+              setSelectedWordBank(undefined);
+            }}
+            id={selectedWordBank}
+            wordBank={wordBank}
+            onDelete={(id, form) => {
+              if (id) {
+                setWordBank((wordBank) => {
+                  return wordBank.filter((word) => {
+                    return word.id !== id;
+                  });
+                });
+                setShowForm(false);
+                setSelectedWordBank(undefined);
+              }
+              form?.reset();
+            }}
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -462,7 +482,7 @@ function FormModal(props: FormModalProps) {
           </div>
           <div className="flex flex-row gap-2.5">
             <button
-            data-id={props.id? true : false}
+              data-id={props.id ? true : false}
               className="data-[id=false]:bg-neutral-400 data-[id=true]:bg-red-500 rounded-lg w-full h-12 text-white flex flex-row items-center justify-center gap-1"
               type="button"
               onClick={() => {

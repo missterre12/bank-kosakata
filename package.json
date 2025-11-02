@@ -13,6 +13,7 @@
     "@tailwindcss/vite": "^4.1.16",
     "@tanstack/react-router": "^1.133.28",
     "lucide-react": "^0.548.0",
+    "pocketbase": "^0.26.3",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "tailwindcss": "^4.1.16"
