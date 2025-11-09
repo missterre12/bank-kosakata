@@ -8,6 +8,10 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { pb } from "../../pocketbase";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { VocabulariesData } from "../../data/types";
+import { queryKeys } from "../../data/queryKeys";
+import { currentUser } from "../../utils/utils";
 
 export const Route = createFileRoute("/_protected/")({
   component: RouteComponent,
@@ -106,6 +110,7 @@ function getInitialConsonant(char: string): string {
 }
 
 function RouteComponent() {
+  const queryClient = useQueryClient()
   pb.health.check().then(console.log);
   const router = useRouter();
   const handleLogout = () => {
@@ -157,6 +162,25 @@ function RouteComponent() {
     )
   );
 
+  const submitVocabularyMutation = useMutation({
+    mutationFn: async (fd: FormData) => {
+      const response = await pb
+        .collection("vocabularies_data")
+        .create<VocabulariesData>(fd);
+      return response;
+    },
+    onError: (error) => {
+      console.error(error);
+      alert("Failed submit!");
+    },
+    onSuccess: (response) => {
+      console.log(response)
+      queryClient.invalidateQueries({
+        queryKey: [queryKeys.listVocabularies]
+      })
+    }
+  });
+
   const handleSubmit = (
     e: React.FormEvent<HTMLFormElement>,
     wordId?: string
@@ -165,38 +189,42 @@ function RouteComponent() {
     e.stopPropagation();
     const formElement = e.target as HTMLFormElement;
     const fd = new FormData(formElement);
-    const textId = fd.get("text-id")?.toString() ?? "";
-    const textKr = fd.get("text-kr")?.toString() ?? "";
-    const notes = fd.get("notes")?.toString() ?? "";
+    // const textId = fd.get("vocab_id")?.toString() ?? "";
+    // const textKr = fd.get("vocab_kr")?.toString() ?? "";
+    // const notes = fd.get("notes")?.toString() ?? "";
 
-    setWordBank((wordBank) => {
-      if (wordId) {
-        return wordBank.map((word) => {
-          if (word.id === wordId) {
-            return {
-              ...word,
-              textId: textId,
-              textKr: textKr,
-              notes: notes,
-              updatedAt: Date.now(),
-            };
-          }
-          return word;
-        });
-      } else {
-        return [
-          ...wordBank,
-          {
-            id: `ID-${Date.now()}`,
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-            textId: textId,
-            textKr: textKr,
-            notes: notes,
-          },
-        ];
-      }
-    });
+    const users = currentUser()    
+    fd.set("users", users.id)
+    submitVocabularyMutation.mutate(fd)
+
+    // setWordBank((wordBank) => {
+    //   if (wordId) {
+    //     return wordBank.map((word) => {
+    //       if (word.id === wordId) {
+    //         return {
+    //           ...word,
+    //           textId: textId,
+    //           textKr: textKr,
+    //           notes: notes,
+    //           updatedAt: Date.now(),
+    //         };
+    //       }
+    //       return word;
+    //     });
+    //   } else {
+    //     return [
+    //       ...wordBank,
+    //       {
+    //         id: `ID-${Date.now()}`,
+    //         createdAt: Date.now(),
+    //         updatedAt: Date.now(),
+    //         textId: textId,
+    //         textKr: textKr,
+    //         notes: notes,
+    //       },
+    //     ];
+    //   }
+    // });
     formElement.reset();
     setShowForm(false);
   };
@@ -450,23 +478,23 @@ function FormModal(props: FormModalProps) {
             {props.id ? "Detail Kosakata" : "Tambah Kosakata"}
           </p>
           <div className="flex flex-col gap-2.5">
-            <label htmlFor="text-id">ID</label>
+            <label htmlFor="vocab_id">ID</label>
             <input
               ref={textIdRef}
               className="bg-white w-full border border-neutral-500/70 rounded-lg ps-2.5 h-10"
-              name="text-id"
-              id="text-id"
+              name="vocab_id"
+              id="vocab_id"
               type="text"
               placeholder="Masukkan kata..."
             />
           </div>
           <div className="flex flex-col gap-2.5">
-            <label htmlFor="text-kr">KR</label>
+            <label htmlFor="vocab_kr">KR</label>
             <input
               ref={textKrRef}
               className="bg-white w-full border border-neutral-500/70 rounded-lg ps-2.5 h-10"
-              name="text-kr"
-              id="text-kr"
+              name="vocab_kr"
+              id="vocab_kr"
               type="text"
               placeholder="Masukkan kata..."
             />
