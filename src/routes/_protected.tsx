@@ -1,15 +1,7 @@
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { pb } from "../pocketbase";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_protected")({
-  beforeLoad: () => {
-    const valid = pb.authStore.isValid;
-    if (!valid) {
-      throw redirect({
-        to: "/login",
-      });
-    }
-  },
+
   component: RouteComponent,
 });
 

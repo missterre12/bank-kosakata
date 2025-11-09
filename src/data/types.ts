@@ -4,6 +4,7 @@ export type VocabulariesData = {
   id: string;
   vocab_id: string;
   vocab_kr: string;
+  notes: string,
   users: string;
   created: string;
   updated: string;

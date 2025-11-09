@@ -1,19 +1,19 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import {
-  PlusIcon,
+    PlusIcon,
   RefreshCcw,
   SquareCheck,
   Trash2Icon,
   XIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { pb } from "../../pocketbase";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { VocabulariesData } from "../../data/types";
-import { queryKeys } from "../../data/queryKeys";
-import { currentUser } from "../../utils/utils";
+import { queryKeys } from "../../../data/queryKeys";
+import { currentUser } from "../../../utils/utils";
+import type { VocabulariesData } from "../../../data/types";
+import { pb } from "../../../pocketbase";
 
-export const Route = createFileRoute("/_protected/")({
+export const Route = createFileRoute("/_protected/contributor/$id")({
   component: RouteComponent,
 });
 
@@ -101,14 +101,16 @@ function getInitialConsonant(char: string): string {
 }
 
 function RouteComponent() {
-  const users = currentUser();
+    const params = Route.useParams()
   const queryClient = useQueryClient();
   const listVocabulariesQuery = useQuery({
     queryKey: [queryKeys.listVocabularies],
     queryFn: async () => {
       const listVocabularies = await pb
         .collection("vocabularies_data")
-        .getFullList<VocabulariesData>();
+        .getFullList<VocabulariesData>({
+          filter: `users = ${params.id}`,
+        });
       return listVocabularies;
     },
   });
@@ -121,15 +123,8 @@ function RouteComponent() {
       replace: true,
     });
   };
-
-  const handleLogin = () => {
-    router.navigate({
-      to: "/login",
-      replace: true,
-    });
-  };
-
   const [showForm, setShowForm] = useState(false);
+  // const [wordBank, setWordBank] = useState<WordBank[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedWordBank, setSelectedWordBank] = useState<string | undefined>(
     undefined
@@ -200,21 +195,28 @@ function RouteComponent() {
     },
     onSuccess: (response) => {
       console.log(response);
-      queryClient.invalidateQueries({
-        queryKey: [queryKeys.listVocabularies],
-      });
+        queryClient.invalidateQueries({
+          queryKey: [queryKeys.listVocabularies],
+        });
     },
   });
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (
+    e: React.FormEvent<HTMLFormElement>,
+  ) => {
     e.preventDefault();
     e.stopPropagation();
     const formElement = e.target as HTMLFormElement;
     const fd = new FormData(formElement);
+    // const vocab_id = fd.get("vocab_id")?.toString() ?? "";
+    // const vocab_kr = fd.get("vocab_kr")?.toString() ?? "";
+    // const notes = fd.get("notes")?.toString() ?? "";
 
+    const users = currentUser();
     fd.set("users", users.id);
     submitVocabularyMutation.mutate(fd);
 
+    // setWordBank((wordBank) => {
     //   if (wordId) {
     //     return wordBank.map((word) => {
     //       if (word.id === wordId) {
@@ -267,23 +269,13 @@ function RouteComponent() {
   return (
     <div className="flex flex-col w-full">
       <div className="ms-auto flex p-5">
-        {users ? (
-          <button
-            type="button"
-            className="bg-sky-600 rounded-lg w-20 h-12 text-white hover:cursor-pointer"
-            onClick={handleLogout}
-          >
-            Logout
-          </button>
-        ) : (
-          <button
-            type="button"
-            className="bg-sky-600 rounded-lg w-20 h-12 text-white hover:cursor-pointer"
-            onClick={handleLogin}
-          >
-            Login
-          </button>
-        )}
+        <button
+          type="button"
+          className="bg-sky-600 rounded-lg w-20 h-12 text-white hover:cursor-pointer"
+          onClick={handleLogout}
+        >
+          Logout
+        </button>
       </div>
       <div className="flex flex-col flex-1 p-15 gap-5 max-w-1/2 mx-auto">
         <div className="flex flex-col gap-10">
